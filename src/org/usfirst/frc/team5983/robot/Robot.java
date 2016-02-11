@@ -3,8 +3,10 @@ package org.usfirst.frc.team5983.robot;
 
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.Relay;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -19,16 +21,19 @@ public class Robot extends IterativeRobot {
 
     //Variables that connect to the robot and the input devices
     RobotDrive jenny;
-    Joystick joystick1;
-    Joystick joystick2;
+    Relay relay;
+    Joystick x360Controller;
+    Joystick logitechJoystick;
+    Victor victor;
+    
+    float forwardTime = 0.0f;
+    float backwardTime = 0.0f;
     
     //Ports used for the motors
     static final int LEFT_MOTOR = 0;
     static final int RIGHT_MOTOR = 1;
-	
-    //Ports for the joysticks
-    int logitechJoystickPort;
-    int x360ControllerPort;
+    
+    static final int VERTICAL_ARM_MOTOR_ID = 2;
     
     /**
      * This function is run when the robot is first started up and should be
@@ -38,35 +43,26 @@ public class Robot extends IterativeRobot {
         
         //Connect to the robot
         jenny = new RobotDrive(LEFT_MOTOR, RIGHT_MOTOR);
+        relay = new Relay(0);
         
         //Get the joysticks
-        joystick1 = new Joystick(0);
-        joystick2 = new Joystick(1);
-        
-        /*
-         * Check if the first joystick is the 360 controller,
-         * if so, then set the x360controller port to 0 and
-         * logitech port to 1. Otherwise, set the numbers
-         * the other way around
-         */
-        if(joystick1.getIsXbox()) {
-        	
-        	x360ControllerPort = 0;
-        	logitechJoystickPort = 1;
-        	
+        if((new Joystick(0)).getIsXbox()) {
+        	x360Controller = new Joystick(0);
+        	logitechJoystick = new Joystick(1);
         }
         else {
-        	
-        	x360ControllerPort = 1;
-        	logitechJoystickPort = 0;
-        	
+        	x360Controller = new Joystick(1);
+        	logitechJoystick = new Joystick(0);
         }
+        
+        //Connect to the vertical arm motor
+        victor = new Victor(VERTICAL_ARM_MOTOR_ID);
         
         /*
          * Set the turning sensitivity to 0.1 to reduce
          * the robot kicking when turning at high speeds 
          */
-        //jenny.setSensitivity(0.1);
+        jenny.setSensitivity(1);
         
         
     }
@@ -89,6 +85,16 @@ public class Robot extends IterativeRobot {
      */
     public void autonomousPeriodic() {
 
+    	if(forwardTime < 200) {
+    		victor.set(1);
+    	}
+    	else {
+    		victor.set(-1);
+    	}
+    	forwardTime++;
+    	
+    	
+    	
     }
 
     public void teleopInit() {
@@ -101,13 +107,19 @@ public class Robot extends IterativeRobot {
      */
     public void teleopPeriodic() {
     	
-    	if(x360ControllerPort == 0){
-    		jenny.arcadeDrive(joystick1.getRawAxis(1), joystick1.getRawAxis(4), true);
+    	//This is for driving with the Logitech Joystick
+    	jenny.arcadeDrive(logitechJoystick);
+    	
+    	//Controller the arm for of the robot
+    	if(logitechJoystick.getRawButton(0)) {
+    		relay.set(Relay.Value.kOn);
+    		relay.set(Relay.Value.kForward);
     	}
     	else {
-    		jenny.arcadeDrive(joystick2.getRawAxis(1), joystick2.getRawAxis(4), true);
+    		if(relay.isAlive()){
+    			relay.set(Relay.Value.kOff);
+    		}
     	}
-    	
     	
     }
     
