@@ -1,9 +1,14 @@
 
 package org.usfirst.frc.team5983.robot;
 
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.Victor;
+import edu.wpi.first.wpilibj.buttons.Button;
+import edu.wpi.first.wpilibj.buttons.JoystickButton;
+import edu.wpi.first.wpilibj.command.Command;
+import edu.wpi.first.wpilibj.command.Scheduler;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Relay;
@@ -21,10 +26,14 @@ public class Robot extends IterativeRobot {
 
     //Variables that connect to the robot and the input devices
     RobotDrive jenny;
-    Relay relay;
+    
     Joystick x360Controller;
     Joystick logitechJoystick;
-    Victor victor;
+    
+    Victor verticalArmController;
+    Victor horizontalArmController;
+    
+    DigitalInput verticalSwitch;
     
     float forwardTime = 0.0f;
     float backwardTime = 0.0f;
@@ -33,7 +42,12 @@ public class Robot extends IterativeRobot {
     static final int LEFT_MOTOR = 0;
     static final int RIGHT_MOTOR = 1;
     
-    static final int VERTICAL_ARM_MOTOR_ID = 2;
+    static final int HORIZONTAL_ARM_MOTOR_PORT = 2;
+    static final int VERTICAL_ARM_MOTOR_PORT = 3;
+    
+    static final int VERTICAL_ARM_SWITCH_PORT = 0;
+    
+    long timePassed = 0;
     
     /**
      * This function is run when the robot is first started up and should be
@@ -43,7 +57,6 @@ public class Robot extends IterativeRobot {
         
         //Connect to the robot
         jenny = new RobotDrive(LEFT_MOTOR, RIGHT_MOTOR);
-        relay = new Relay(0);
         
         //Get the joysticks
         if((new Joystick(0)).getIsXbox()) {
@@ -54,9 +67,12 @@ public class Robot extends IterativeRobot {
         	x360Controller = new Joystick(1);
         	logitechJoystick = new Joystick(0);
         }
-        
+
         //Connect to the vertical arm motor
-        victor = new Victor(VERTICAL_ARM_MOTOR_ID);
+        verticalArmController = new Victor(VERTICAL_ARM_MOTOR_PORT);
+        horizontalArmController = new Victor(HORIZONTAL_ARM_MOTOR_PORT);
+        
+        verticalSwitch = new DigitalInput(VERTICAL_ARM_SWITCH_PORT);
         
         /*
          * Set the turning sensitivity to 0.1 to reduce
@@ -64,6 +80,8 @@ public class Robot extends IterativeRobot {
          */
         jenny.setSensitivity(1);
         
+        //Debug window
+        timePassed = 0;
         
     }
     
@@ -85,16 +103,8 @@ public class Robot extends IterativeRobot {
      */
     public void autonomousPeriodic() {
 
-    	if(forwardTime < 200) {
-    		victor.set(1);
-    	}
-    	else {
-    		victor.set(-1);
-    	}
-    	forwardTime++;
-    	
-    	
-    	
+
+
     }
 
     public void teleopInit() {
@@ -110,16 +120,50 @@ public class Robot extends IterativeRobot {
     	//This is for driving with the Logitech Joystick
     	jenny.arcadeDrive(logitechJoystick);
     	
-    	//Controller the arm for of the robot
-    	if(logitechJoystick.getRawButton(0)) {
-    		relay.set(Relay.Value.kOn);
-    		relay.set(Relay.Value.kForward);
+    	moveHorizontalArm();
+    	moveVerticalArm();
+    	printDebugInfo();
+    	
+    	timePassed++;
+    	
+    }
+    
+    public void moveVerticalArm() {
+    	
+    	if(logitechJoystick.getPOV() == 0) {
+    		verticalArmController.set(0.2);
+    	}
+    	else if(logitechJoystick.getPOV() == 180 && verticalSwitch.get() == false) {
+    		verticalArmController.set(-0.2);
     	}
     	else {
-    		if(relay.isAlive()){
-    			relay.set(Relay.Value.kOff);
-    		}
+    		verticalArmController.set(0);
     	}
+    	
+    }
+    
+    public void moveHorizontalArm() {
+    	
+    	
+    	//Controller the arm for of the robot
+    	if(logitechJoystick.getTrigger() == true) {
+    		horizontalArmController.set(0.2);
+    	}
+    	else if(logitechJoystick.getRawButton(2) == true) { 
+    		horizontalArmController.set(-0.2);
+    	}
+    	else {
+    		horizontalArmController.set(0);
+    	}
+    }
+    
+    public void printDebugInfo() {
+
+    	SmartDashboard.putNumber("TimePassed", timePassed);
+    	SmartDashboard.putBoolean("Close Horizontal Arms", logitechJoystick.getTrigger());
+    	SmartDashboard.putBoolean("Open Horizontal Arms", logitechJoystick.getRawButton(2));
+    	SmartDashboard.putNumber("POV", logitechJoystick.getPOV());
+    	SmartDashboard.putBoolean("Vertical Switch", verticalSwitch.get());
     	
     }
     
@@ -133,3 +177,4 @@ public class Robot extends IterativeRobot {
     }
     
 }
+
