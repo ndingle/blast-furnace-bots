@@ -130,14 +130,17 @@ public class Robot extends IterativeRobot {
     
     public void moveVerticalArm() {
     	
-    	if(logitechJoystick.getPOV() == 0) {
-    		verticalArmController.set(0.2);
+    	if(x360Controller.getPOV() == 0) {
+    		verticalArmController.set(-0.049);
     	}
-    	else if(logitechJoystick.getPOV() == 180 && verticalSwitch.get() == false) {
+    	else if(x360Controller.getPOV() == 180 ) {
+    		verticalArmController.set(-0.4);
+    	}
+    	else if(verticalSwitch.get() == true){
     		verticalArmController.set(-0.2);
     	}
     	else {
-    		verticalArmController.set(0);
+    		verticalArmController.set(0.0);
     	}
     	
     }
@@ -164,6 +167,7 @@ public class Robot extends IterativeRobot {
     	SmartDashboard.putBoolean("Open Horizontal Arms", logitechJoystick.getRawButton(2));
     	SmartDashboard.putNumber("POV", logitechJoystick.getPOV());
     	SmartDashboard.putBoolean("Vertical Switch", verticalSwitch.get());
+    	SmartDashboard.putNumber("Vertical Speed", verticalArmController.get());
     	
     }
     
